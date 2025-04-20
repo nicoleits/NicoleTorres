@@ -1,114 +1,147 @@
-import pandas as pd
+import polars as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
+from datetime import datetime
+import os
 
-# Configurar el estilo de las gráficas
-plt.style.use('default')  # Usar estilo por defecto en lugar de seaborn
-sns.set_theme()  # Configurar tema de seaborn
+# Configuración del estilo de las gráficas
+plt.style.use('seaborn')
+sns.set_palette("husl")
 
-# Cargar los datos
-resultados_dir = Path("Prueba1/resultados")
-chile_data = pd.read_csv(resultados_dir / "datos_Chile.csv")
-indonesia_data = pd.read_csv(resultados_dir / "datos_Indonesia.csv")
-sudafrica_data = pd.read_csv(resultados_dir / "datos_Sudáfrica.csv")
+# Crear directorio de resultados si no existe
+os.makedirs('Prueba1/resultados', exist_ok=True)
 
-# Función para calcular promedios diarios
+# Cargar los datos usando Polars
+def cargar_datos(archivo):
+    return pl.read_csv(archivo)
+
+# Cargar los datos de cada país
+datos_chile = cargar_datos('Prueba1/resultados/datos_Chile.csv')
+datos_china = cargar_datos('Prueba1/resultados/datos_China.csv')
+datos_sudafrica = cargar_datos('Prueba1/resultados/datos_Sudáfrica.csv')
+
+# Convertir las columnas de fecha y hora a datetime
+def procesar_fecha_hora(df):
+    return df.with_columns([
+        pl.col('Year').cast(pl.Int64),
+        pl.col('Month').cast(pl.Int64),
+        pl.col('Day').cast(pl.Int64),
+        pl.col('Hour').cast(pl.Int64),
+        pl.col('Minute').cast(pl.Int64)
+    ]).with_columns([
+        pl.datetime(
+            'Year', 'Month', 'Day', 'Hour', 'Minute'
+        ).alias('datetime')
+    ])
+
+# Procesar las fechas para cada dataset
+datos_chile = procesar_fecha_hora(datos_chile)
+datos_china = procesar_fecha_hora(datos_china)
+datos_sudafrica = procesar_fecha_hora(datos_sudafrica)
+
+# Calcular promedios diarios
 def calcular_promedios_diarios(df):
-    df['Fecha'] = pd.to_datetime(df[['Year', 'Month', 'Day']])
-    return df.groupby('Fecha').agg({
-        'GHI': 'mean',
-        'DHI': 'mean',
-        'DNI': 'mean'
-    }).reset_index()
+    return df.groupby_dynamic('datetime', period='1d').agg([
+        pl.col('GHI').mean().alias('GHI_mean'),
+        pl.col('DHI').mean().alias('DHI_mean'),
+        pl.col('DNI').mean().alias('DNI_mean')
+    ])
 
 # Calcular promedios diarios para cada país
-chile_daily = calcular_promedios_diarios(chile_data)
-indonesia_daily = calcular_promedios_diarios(indonesia_data)
-sudafrica_daily = calcular_promedios_diarios(sudafrica_data)
+promedios_chile = calcular_promedios_diarios(datos_chile)
+promedios_china = calcular_promedios_diarios(datos_china)
+promedios_sudafrica = calcular_promedios_diarios(datos_sudafrica)
 
-# Crear gráficas
-fig, axes = plt.subplots(3, 1, figsize=(12, 15))
-fig.suptitle('Comparación de Irradiancia Solar entre Países', fontsize=16)
+# Crear gráfica de comparación
+plt.figure(figsize=(15, 10))
 
-# GHI
-axes[0].plot(chile_daily['Fecha'], chile_daily['GHI'], label='Chile', alpha=0.7)
-axes[0].plot(indonesia_daily['Fecha'], indonesia_daily['GHI'], label='Indonesia', alpha=0.7)
-axes[0].plot(sudafrica_daily['Fecha'], sudafrica_daily['GHI'], label='Sudáfrica', alpha=0.7)
-axes[0].set_title('Irradiancia Global Horizontal (GHI)')
-axes[0].set_xlabel('Fecha')
-axes[0].set_ylabel('GHI (W/m²)')
-axes[0].legend()
-axes[0].grid(True)
+# Graficar GHI
+plt.subplot(3, 1, 1)
+plt.plot(promedios_chile['datetime'], promedios_chile['GHI_mean'], label='Chile', linewidth=2)
+plt.plot(promedios_china['datetime'], promedios_china['GHI_mean'], label='China', linewidth=2)
+plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['GHI_mean'], label='Sudáfrica', linewidth=2)
+plt.title('Comparación de Irradiancia Global Horizontal (GHI)')
+plt.ylabel('GHI (W/m²)')
+plt.legend()
+plt.grid(True)
 
-# DHI
-axes[1].plot(chile_daily['Fecha'], chile_daily['DHI'], label='Chile', alpha=0.7)
-axes[1].plot(indonesia_daily['Fecha'], indonesia_daily['DHI'], label='Indonesia', alpha=0.7)
-axes[1].plot(sudafrica_daily['Fecha'], sudafrica_daily['DHI'], label='Sudáfrica', alpha=0.7)
-axes[1].set_title('Irradiancia Difusa Horizontal (DHI)')
-axes[1].set_xlabel('Fecha')
-axes[1].set_ylabel('DHI (W/m²)')
-axes[1].legend()
-axes[1].grid(True)
+# Graficar DHI
+plt.subplot(3, 1, 2)
+plt.plot(promedios_chile['datetime'], promedios_chile['DHI_mean'], label='Chile', linewidth=2)
+plt.plot(promedios_china['datetime'], promedios_china['DHI_mean'], label='China', linewidth=2)
+plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DHI_mean'], label='Sudáfrica', linewidth=2)
+plt.title('Comparación de Irradiancia Difusa Horizontal (DHI)')
+plt.ylabel('DHI (W/m²)')
+plt.legend()
+plt.grid(True)
 
-# DNI
-axes[2].plot(chile_daily['Fecha'], chile_daily['DNI'], label='Chile', alpha=0.7)
-axes[2].plot(indonesia_daily['Fecha'], indonesia_daily['DNI'], label='Indonesia', alpha=0.7)
-axes[2].plot(sudafrica_daily['Fecha'], sudafrica_daily['DNI'], label='Sudáfrica', alpha=0.7)
-axes[2].set_title('Irradiancia Directa Normal (DNI)')
-axes[2].set_xlabel('Fecha')
-axes[2].set_ylabel('DNI (W/m²)')
-axes[2].legend()
-axes[2].grid(True)
+# Graficar DNI
+plt.subplot(3, 1, 3)
+plt.plot(promedios_chile['datetime'], promedios_chile['DNI_mean'], label='Chile', linewidth=2)
+plt.plot(promedios_china['datetime'], promedios_china['DNI_mean'], label='China', linewidth=2)
+plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DNI_mean'], label='Sudáfrica', linewidth=2)
+plt.title('Comparación de Irradiancia Directa Normal (DNI)')
+plt.xlabel('Fecha')
+plt.ylabel('DNI (W/m²)')
+plt.legend()
+plt.grid(True)
 
 plt.tight_layout()
 plt.savefig('Prueba1/resultados/comparacion_irradiancias.png', dpi=300, bbox_inches='tight')
+plt.close()
 
-# Calcular estadísticas básicas
+# Calcular y mostrar estadísticas
 def calcular_estadisticas(df, pais):
-    return {
-        'País': pais,
-        'GHI Promedio': df['GHI'].mean(),
-        'DHI Promedio': df['DHI'].mean(),
-        'DNI Promedio': df['DNI'].mean(),
-        'GHI Máximo': df['GHI'].max(),
-        'DHI Máximo': df['DHI'].max(),
-        'DNI Máximo': df['DNI'].max()
-    }
+    stats = df.select([
+        pl.col('GHI').mean().alias('GHI_mean'),
+        pl.col('GHI').max().alias('GHI_max'),
+        pl.col('DHI').mean().alias('DHI_mean'),
+        pl.col('DHI').max().alias('DHI_max'),
+        pl.col('DNI').mean().alias('DNI_mean'),
+        pl.col('DNI').max().alias('DNI_max')
+    ])
+    print(f"\nEstadísticas para {pais}:")
+    print(stats)
 
-estadisticas = pd.DataFrame([
-    calcular_estadisticas(chile_daily, 'Chile'),
-    calcular_estadisticas(indonesia_daily, 'Indonesia'),
-    calcular_estadisticas(sudafrica_daily, 'Sudáfrica')
-])
+calcular_estadisticas(datos_chile, "Chile")
+calcular_estadisticas(datos_china, "China")
+calcular_estadisticas(datos_sudafrica, "Sudáfrica")
 
-print("\nEstadísticas de Irradiancia por País:")
-print(estadisticas.round(2))
+# Crear gráfica de barras para máximos
+maximos = pl.DataFrame({
+    'País': ['Chile', 'China', 'Sudáfrica'],
+    'GHI': [
+        datos_chile['GHI'].max(),
+        datos_china['GHI'].max(),
+        datos_sudafrica['GHI'].max()
+    ],
+    'DHI': [
+        datos_chile['DHI'].max(),
+        datos_china['DHI'].max(),
+        datos_sudafrica['DHI'].max()
+    ],
+    'DNI': [
+        datos_chile['DNI'].max(),
+        datos_china['DNI'].max(),
+        datos_sudafrica['DNI'].max()
+    ]
+})
 
-# Crear gráfica de barras para comparar máximos
 plt.figure(figsize=(12, 6))
-x = range(len(estadisticas['País']))
+x = range(len(maximos['País']))
 width = 0.25
 
-plt.bar([i - width for i in x], estadisticas['GHI Máximo'], width, label='GHI Máximo', color='#1f77b4', alpha=0.7)
-plt.bar(x, estadisticas['DHI Máximo'], width, label='DHI Máximo', color='#ff7f0e', alpha=0.7)
-plt.bar([i + width for i in x], estadisticas['DNI Máximo'], width, label='DNI Máximo', color='#2ca02c', alpha=0.7)
+plt.bar([i - width for i in x], maximos['GHI'], width, label='GHI')
+plt.bar(x, maximos['DHI'], width, label='DHI')
+plt.bar([i + width for i in x], maximos['DNI'], width, label='DNI')
 
 plt.xlabel('País')
 plt.ylabel('Irradiancia Máxima (W/m²)')
-plt.title('Comparación de Valores Máximos de Irradiancia por País')
-plt.xticks(x, estadisticas['País'])
+plt.title('Comparación de Máximos de Irradiancia por País')
+plt.xticks(x, maximos['País'])
 plt.legend()
-plt.grid(True, alpha=0.3)
-
-# Añadir valores sobre las barras
-for i in x:
-    plt.text(i - width, estadisticas['GHI Máximo'].iloc[i], f'{estadisticas["GHI Máximo"].iloc[i]:.1f}', 
-             ha='center', va='bottom')
-    plt.text(i, estadisticas['DHI Máximo'].iloc[i], f'{estadisticas["DHI Máximo"].iloc[i]:.1f}', 
-             ha='center', va='bottom')
-    plt.text(i + width, estadisticas['DNI Máximo'].iloc[i], f'{estadisticas["DNI Máximo"].iloc[i]:.1f}', 
-             ha='center', va='bottom')
+plt.grid(True)
 
 plt.tight_layout()
-plt.savefig('Prueba1/resultados/comparacion_maximos.png', dpi=300, bbox_inches='tight') 
+plt.savefig('Prueba1/resultados/comparacion_maximos.png', dpi=300, bbox_inches='tight')
+plt.close() 
