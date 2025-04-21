@@ -1,12 +1,11 @@
 import polars as pl
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 from datetime import datetime
 import os
 
-# Configuración del estilo de las gráficas
-plt.style.use('seaborn')
-sns.set_palette("husl")
+# Configuración del estilo
+plt.style.use('default')
 
 # Crear directorio de resultados si no existe
 os.makedirs('Prueba1/resultados', exist_ok=True)
@@ -39,12 +38,25 @@ datos_chile = procesar_fecha_hora(datos_chile)
 datos_china = procesar_fecha_hora(datos_china)
 datos_sudafrica = procesar_fecha_hora(datos_sudafrica)
 
-# Calcular promedios diarios
+# Calcular promedios e irradiación diarios
 def calcular_promedios_diarios(df):
-    return df.groupby_dynamic('datetime', period='1d').agg([
-        pl.col('GHI').mean().alias('GHI_mean'),
-        pl.col('DHI').mean().alias('DHI_mean'),
-        pl.col('DNI').mean().alias('DNI_mean')
+    # Factor de conversión: (W/m² * minuto) a (kWh/m²)
+    # 1 kWh/m² = 1000 W/m² * 1 hora
+    # Como tenemos datos cada minuto, multiplicamos por (1/60) para convertir a horas
+    # y por (1/1000) para convertir a kWh
+    factor_conversion = 1 / (60 * 1000)
+    
+    return df.group_by_dynamic(
+        'datetime',
+        every='1d',
+        period='1d'
+    ).agg([
+        pl.col('GHI').mean().alias('GHI_promedio'),
+        pl.col('DHI').mean().alias('DHI_promedio'),
+        pl.col('DNI').mean().alias('DNI_promedio'),
+        (pl.col('GHI').sum() * factor_conversion).alias('GHI_irradiacion'),
+        (pl.col('DHI').sum() * factor_conversion).alias('DHI_irradiacion'),
+        (pl.col('DNI').sum() * factor_conversion).alias('DNI_irradiacion')
     ])
 
 # Calcular promedios diarios para cada país
@@ -52,43 +64,86 @@ promedios_chile = calcular_promedios_diarios(datos_chile)
 promedios_china = calcular_promedios_diarios(datos_china)
 promedios_sudafrica = calcular_promedios_diarios(datos_sudafrica)
 
-# Crear gráfica de comparación
-plt.figure(figsize=(15, 10))
+# Crear gráficas
+def crear_graficas_irradiancia():
+    plt.figure(figsize=(15, 10))
 
-# Graficar GHI
-plt.subplot(3, 1, 1)
-plt.plot(promedios_chile['datetime'], promedios_chile['GHI_mean'], label='Chile', linewidth=2)
-plt.plot(promedios_china['datetime'], promedios_china['GHI_mean'], label='China', linewidth=2)
-plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['GHI_mean'], label='Sudáfrica', linewidth=2)
-plt.title('Comparación de Irradiancia Global Horizontal (GHI)')
-plt.ylabel('GHI (W/m²)')
-plt.legend()
-plt.grid(True)
+    # Graficar GHI
+    plt.subplot(3, 1, 1)
+    plt.plot(promedios_chile['datetime'], promedios_chile['GHI_promedio'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['GHI_promedio'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['GHI_promedio'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiancia Global Horizontal (GHI)')
+    plt.ylabel('GHI (W/m²)')
+    plt.legend()
+    plt.grid(True)
 
-# Graficar DHI
-plt.subplot(3, 1, 2)
-plt.plot(promedios_chile['datetime'], promedios_chile['DHI_mean'], label='Chile', linewidth=2)
-plt.plot(promedios_china['datetime'], promedios_china['DHI_mean'], label='China', linewidth=2)
-plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DHI_mean'], label='Sudáfrica', linewidth=2)
-plt.title('Comparación de Irradiancia Difusa Horizontal (DHI)')
-plt.ylabel('DHI (W/m²)')
-plt.legend()
-plt.grid(True)
+    # Graficar DHI
+    plt.subplot(3, 1, 2)
+    plt.plot(promedios_chile['datetime'], promedios_chile['DHI_promedio'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['DHI_promedio'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DHI_promedio'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiancia Difusa Horizontal (DHI)')
+    plt.ylabel('DHI (W/m²)')
+    plt.legend()
+    plt.grid(True)
 
-# Graficar DNI
-plt.subplot(3, 1, 3)
-plt.plot(promedios_chile['datetime'], promedios_chile['DNI_mean'], label='Chile', linewidth=2)
-plt.plot(promedios_china['datetime'], promedios_china['DNI_mean'], label='China', linewidth=2)
-plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DNI_mean'], label='Sudáfrica', linewidth=2)
-plt.title('Comparación de Irradiancia Directa Normal (DNI)')
-plt.xlabel('Fecha')
-plt.ylabel('DNI (W/m²)')
-plt.legend()
-plt.grid(True)
+    # Graficar DNI
+    plt.subplot(3, 1, 3)
+    plt.plot(promedios_chile['datetime'], promedios_chile['DNI_promedio'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['DNI_promedio'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DNI_promedio'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiancia Directa Normal (DNI)')
+    plt.xlabel('Fecha')
+    plt.ylabel('DNI (W/m²)')
+    plt.legend()
+    plt.grid(True)
 
-plt.tight_layout()
-plt.savefig('Prueba1/resultados/comparacion_irradiancias.png', dpi=300, bbox_inches='tight')
-plt.close()
+    plt.tight_layout()
+    plt.savefig('Prueba1/resultados/comparacion_irradiancias.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+def crear_graficas_irradiacion():
+    plt.figure(figsize=(15, 10))
+
+    # Graficar GHI
+    plt.subplot(3, 1, 1)
+    plt.plot(promedios_chile['datetime'], promedios_chile['GHI_irradiacion'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['GHI_irradiacion'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['GHI_irradiacion'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiación Global Horizontal (GHI)')
+    plt.ylabel('GHI (kWh/m²/día)')
+    plt.legend()
+    plt.grid(True)
+
+    # Graficar DHI
+    plt.subplot(3, 1, 2)
+    plt.plot(promedios_chile['datetime'], promedios_chile['DHI_irradiacion'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['DHI_irradiacion'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DHI_irradiacion'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiación Difusa Horizontal (DHI)')
+    plt.ylabel('DHI (kWh/m²/día)')
+    plt.legend()
+    plt.grid(True)
+
+    # Graficar DNI
+    plt.subplot(3, 1, 3)
+    plt.plot(promedios_chile['datetime'], promedios_chile['DNI_irradiacion'], label='Chile', linewidth=2)
+    plt.plot(promedios_china['datetime'], promedios_china['DNI_irradiacion'], label='China', linewidth=2)
+    plt.plot(promedios_sudafrica['datetime'], promedios_sudafrica['DNI_irradiacion'], label='Sudáfrica', linewidth=2)
+    plt.title('Comparación de Irradiación Directa Normal (DNI)')
+    plt.xlabel('Fecha')
+    plt.ylabel('DNI (kWh/m²/día)')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig('Prueba1/resultados/comparacion_irradiaciones.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+# Crear las gráficas
+crear_graficas_irradiancia()
+crear_graficas_irradiacion()
 
 # Calcular y mostrar estadísticas
 def calcular_estadisticas(df, pais):
@@ -102,6 +157,18 @@ def calcular_estadisticas(df, pais):
     ])
     print(f"\nEstadísticas para {pais}:")
     print(stats)
+    
+    # Calcular estadísticas de irradiación
+    irradiacion_stats = calcular_promedios_diarios(df).select([
+        pl.col('GHI_irradiacion').mean().alias('GHI_irradiacion_media'),
+        pl.col('GHI_irradiacion').max().alias('GHI_irradiacion_max'),
+        pl.col('DHI_irradiacion').mean().alias('DHI_irradiacion_media'),
+        pl.col('DHI_irradiacion').max().alias('DHI_irradiacion_max'),
+        pl.col('DNI_irradiacion').mean().alias('DNI_irradiacion_media'),
+        pl.col('DNI_irradiacion').max().alias('DNI_irradiacion_max')
+    ])
+    print(f"\nEstadísticas de irradiación diaria para {pais} (kWh/m²/día):")
+    print(irradiacion_stats)
 
 calcular_estadisticas(datos_chile, "Chile")
 calcular_estadisticas(datos_china, "China")
