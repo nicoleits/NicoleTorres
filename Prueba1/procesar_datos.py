@@ -16,21 +16,21 @@ ubicaciones = {
         'lon': 21.30,
         'elev': 0,  # Elevación por defecto
         'tz': 2,    # Zona horaria por defecto
-        'archivos': ['1155731_-29.19_21.30_2018.csv', '1155731_-29.19_21.30_2019.csv']
+        'archivos': ['1155731_-29.19_21.30_2019.csv']
     },
     'China': {
         'lat': 44.73,
         'lon': 87.66,
         'elev': 0,
         'tz': 8,
-        'archivos': ['3480150_44.73_87.66_2018.csv', '3480150_44.73_87.66_2018.csv']
+        'archivos': ['3480150_44.73_87.66_2018.csv']
     },
     'Chile': {
         'lat': -23.84,
         'lon': -69.89,
         'elev': 735,  # Elevación real de Chile
         'tz': -4,
-        'archivos': ['5815755_-23.84_-69.89_2018.csv', '5815755_-23.84_-69.89_2019.csv']
+        'archivos': ['5815755_-23.84_-69.89_2019.csv']
     }
 }
 

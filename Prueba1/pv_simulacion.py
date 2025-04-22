@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 # Configuración de parámetros del sistema
 # ---------------------------------------
 # Archivo de recursos solares - asegúrate de que la ruta sea correcta
-solar_resource_file = "/home/nicole/proyecto/antofagasta.csv"
+#solar_resource_file = "/home/nicole/proyecto/antofagasta.csv"
+solar_resource_file = "/home/nicole/proyecto/NicoleTorres/Prueba1/datos_Chile.csv"
 
 # Parámetros técnicos y económicos
 system_capacity_kw = 1000.0       # Capacidad del sistema en kW
