@@ -15,7 +15,7 @@ ubicaciones = {
         'lon': 87.66,
         'elev': 0,
         'tz': 8,
-        'archivos': ['3480150_44.73_87.66_2018.csv', '3480150_44.73_87.66_2019.csv']
+        'archivos': ['3480150_44.73_87.66_2018.csv', '3480150_44.73_87.66_2018.csv']
     },
     'Chile': {
         'lat': -23.84,
@@ -38,7 +38,7 @@ for id_ubicacion, info in ubicaciones.items():
         # Leer el archivo CSV, saltando las primeras 2 filas que contienen metadatos
         df = pl.read_csv(archivo, skip_rows=2)
         
-        # Seleccionar y renombrar las columnas necesarias
+        # Seleccionar solo las columnas necesarias para PySAM
         df = df.select([
             pl.col('Year'),
             pl.col('Month'),
@@ -47,11 +47,7 @@ for id_ubicacion, info in ubicaciones.items():
             pl.col('Minute'),
             pl.col('DNI'),
             pl.col('GHI'),
-            pl.col('DHI'),
-            pl.col('Temperature'),
-            pl.col('Wind Speed'),
-            pl.col('Pressure'),
-            pl.col('Relative Humidity')
+            pl.col('DHI')
         ])
         
         # Agregar el DataFrame a la lista
@@ -68,11 +64,15 @@ for id_ubicacion, info in ubicaciones.items():
     
     # Escribir los metadatos y los datos en un solo paso
     with open(nombre_archivo, 'w') as f:
-        # Escribir metadatos
-        f.write(f"Latitude,{info['lat']}\n")
-        f.write(f"Longitude,{info['lon']}\n")
-        f.write(f"Time Zone,{info['tz']}\n")
-        f.write(f"Elevation,{info['elev']}\n")
+        # Escribir metadatos en formato PySAM
+        f.write(f"# Source: Solar Data for {id_ubicacion}\n")
+        f.write(f"# Location: {id_ubicacion}\n")
+        f.write(f"# Lat: {info['lat']}\n")
+        f.write(f"# Lon: {info['lon']}\n")
+        f.write(f"# Elev: {info['elev']}\n")
+        f.write(f"# Time Zone: {info['tz']}\n")
+        f.write(f"# Local Time Zone: {info['tz']}\n")
+        f.write(f"# Data Format: TMY3\n\n")
         
         # Escribir encabezados y datos
         df_final.write_csv(f)

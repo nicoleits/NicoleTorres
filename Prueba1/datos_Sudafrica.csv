@@ -1,3 +1,12 @@
+# Source: Solar Data for Sudafrica
+# Location: Sudafrica
+# Lat: -29.19
+# Lon: 21.3
+# Elev: 0
+# Time Zone: 2
+# Local Time Zone: 2
+# Data Format: TMY3
+
 Year,Month,Day,Hour,Minute,DNI,GHI,DHI
 2018,1,1,0,30,0,0,0
 2018,1,1,1,30,0,0,0

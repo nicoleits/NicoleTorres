@@ -1,3 +1,12 @@
+# Source: Solar Data for Chile
+# Location: Chile
+# Lat: -23.84
+# Lon: -69.89
+# Elev: 735
+# Time Zone: -4
+# Local Time Zone: -4
+# Data Format: TMY3
+
 Year,Month,Day,Hour,Minute,DNI,GHI,DHI
 2018,1,1,0,0,0,0,0
 2018,1,1,1,0,0,0,0
