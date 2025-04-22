@@ -8,16 +8,17 @@ import os
 plt.style.use('default')
 
 # Crear directorio de resultados si no existe
-os.makedirs('Prueba1/resultados', exist_ok=True)
+os.makedirs('resultados', exist_ok=True)
 
 # Cargar los datos usando Polars
 def cargar_datos(archivo):
-    return pl.read_csv(archivo)
+    # Leer el archivo CSV, saltando las primeras 4 líneas que contienen metadatos
+    return pl.read_csv(archivo, skip_rows=4)
 
 # Cargar los datos de cada país
-datos_chile = cargar_datos('Prueba1/resultados/datos_Chile.csv')
-datos_china = cargar_datos('Prueba1/resultados/datos_China.csv')
-datos_sudafrica = cargar_datos('Prueba1/resultados/datos_Sudáfrica.csv')
+datos_chile = cargar_datos('/home/nicole/proyecto/NicoleTorres/Prueba1/datos_Chile.csv')
+datos_china = cargar_datos('/home/nicole/proyecto/NicoleTorres/Prueba1/datos_China.csv')
+datos_sudafrica = cargar_datos('/home/nicole/proyecto/NicoleTorres/Prueba1/datos_Sudafrica.csv')
 
 # Convertir las columnas de fecha y hora a datetime
 def procesar_fecha_hora(df):
@@ -100,7 +101,7 @@ def crear_graficas_irradiancia():
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig('Prueba1/resultados/comparacion_irradiancias.png', dpi=300, bbox_inches='tight')
+    plt.savefig('resultados/comparacion_irradiancias.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 def crear_graficas_irradiacion():
@@ -138,7 +139,7 @@ def crear_graficas_irradiacion():
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig('Prueba1/resultados/comparacion_irradiaciones.png', dpi=300, bbox_inches='tight')
+    plt.savefig('resultados/comparacion_irradiaciones.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 # Crear las gráficas
@@ -210,5 +211,5 @@ plt.legend()
 plt.grid(True)
 
 plt.tight_layout()
-plt.savefig('Prueba1/resultados/comparacion_maximos.png', dpi=300, bbox_inches='tight')
+plt.savefig('resultados/comparacion_maximos.png', dpi=300, bbox_inches='tight')
 plt.close() 
