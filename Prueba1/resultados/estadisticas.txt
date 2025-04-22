@@ -1,0 +1,14 @@
+Estadísticas de radiación solar:
+
+GHI:
+  media: 262.13 W/m²
+  max: 1201.00 W/m²
+  min: 0.00 W/m²
+DNI:
+  media: 348.41 W/m²
+  max: 1120.00 W/m²
+  min: 0.00 W/m²
+DHI:
+  media: 49.14 W/m²
+  max: 553.00 W/m²
+  min: 0.00 W/m²

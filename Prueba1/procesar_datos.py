@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+Script para procesar y convertir datos meteorológicos al formato de antofagasta.csv
+"""
+
 import polars as pl
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -28,6 +33,36 @@ ubicaciones = {
         'archivos': ['5815755_-23.84_-69.89_2018.csv', '5815755_-23.84_-69.89_2019.csv']
     }
 }
+
+def convertir_a_formato_antofagasta(df, info, ubicacion):
+    """Convierte un DataFrame al formato de antofagasta.csv"""
+    # Crear el encabezado en el formato de antofagasta.csv
+    header = f"""Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
+ExpSolar,00000,S1,NA,{ubicacion},{info['lat']},{info['lon']},{info['tz']},{info['elev']}
+Year,Month,Day,Hour,Minute,GHI,DNI,DHI,Tdry,Tdew,RH,Pres,Wspd,Wdir,Snow Depth
+"""
+    
+    # Crear un nuevo DataFrame con las columnas requeridas
+    new_df = df.clone()
+    
+    # Añadir columnas con valores por defecto
+    new_df = new_df.with_columns([
+        pl.lit(25.0).alias('Tdry'),  # Temperatura seca en °C
+        pl.lit(15.0).alias('Tdew'),  # Temperatura de rocío en °C
+        pl.lit(50.0).alias('RH'),    # Humedad relativa en %
+        pl.lit(1013.25).alias('Pres'),  # Presión atmosférica en hPa
+        pl.lit(3.0).alias('Wspd'),    # Velocidad del viento en m/s
+        pl.lit(180.0).alias('Wdir'),  # Dirección del viento en grados
+        pl.lit(0).alias('Snow Depth')  # Profundidad de nieve en cm
+    ])
+    
+    # Guardar el archivo con el nuevo formato
+    nombre_archivo = f'datos_{ubicacion}.csv'
+    with open(nombre_archivo, 'w') as f:
+        f.write(header)
+        new_df.write_csv(f, include_header=False)
+    
+    print(f"Archivo convertido y guardado como: {nombre_archivo}")
 
 def analizar_irradiacion_anual(df):
     """Analiza la irradiación anual por tipo"""
@@ -122,7 +157,7 @@ for id_ubicacion, info in ubicaciones.items():
         # Leer el archivo CSV, saltando las primeras 2 filas que contienen metadatos
         df = pl.read_csv(archivo, skip_rows=2)
         
-        # Seleccionar solo las columnas necesarias para PySAM
+        # Seleccionar solo las columnas necesarias
         df = df.select([
             pl.col('Year'),
             pl.col('Month'),
@@ -143,6 +178,9 @@ for id_ubicacion, info in ubicaciones.items():
     # Ordenar por fecha y hora
     df_final = df_final.sort(['Year', 'Month', 'Day', 'Hour', 'Minute'])
     
+    # Convertir al formato de antofagasta.csv
+    convertir_a_formato_antofagasta(df_final, info, id_ubicacion)
+    
     # Realizar análisis de irradiación
     print(f"\nAnalizando irradiación para {id_ubicacion}...")
     resultados_anuales = analizar_irradiacion_anual(df_final)
@@ -160,26 +198,5 @@ for id_ubicacion, info in ubicaciones.items():
         print(f"  Máximo: {resultados_anuales[tipo]['maximo']:.2f} W/m²")
         print(f"  Mínimo: {resultados_anuales[tipo]['minimo']:.2f} W/m²")
         print(f"  Total anual: {resultados_anuales[tipo]['total']/1000:.2f} kWh/m²")
-    
-    # Crear el archivo de salida con el formato PySAM
-    nombre_archivo = f'datos_{id_ubicacion}.csv'
-    
-    # Escribir los metadatos y los datos en un solo paso
-    with open(nombre_archivo, 'w') as f:
-        # Escribir metadatos en formato PySAM
-        f.write(f"# Source: Solar Data for {id_ubicacion}\n")
-        f.write(f"# Location: {id_ubicacion}\n")
-        f.write(f"# Lat: {info['lat']}\n")
-        f.write(f"# Lon: {info['lon']}\n")
-        f.write(f"# Elev: {info['elev']}\n")
-        f.write(f"# Time Zone: {info['tz']}\n")
-        f.write(f"# Local Time Zone: {info['tz']}\n")
-        f.write(f"# Data Format: TMY3\n\n")
-        
-        # Escribir encabezados y datos
-        df_final.write_csv(f)
-    
-    print(f"\nLos datos han sido guardados en '{nombre_archivo}' en formato PySAM")
-    print(f"Los gráficos se han guardado en el directorio 'resultados'")
 
 print("\nProcesamiento completado para todas las ubicaciones") 

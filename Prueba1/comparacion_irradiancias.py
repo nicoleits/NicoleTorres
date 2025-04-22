@@ -108,7 +108,7 @@ def main():
     plt.tight_layout()
     plt.savefig('resultados/comparacion_irradiancias.png')
     plt.close()
-    
+
     # Gráfico de máximos
     plt.figure(figsize=(12, 6))
     for i, tipo in enumerate(tipos):
@@ -127,12 +127,12 @@ def main():
     # Gráfico de irradiación diaria
     plt.figure(figsize=(10, 6))
     plt.bar(paises, list(irradiacion_diaria.values()))
-    plt.xlabel('País')
+plt.xlabel('País')
     plt.ylabel('Irradiación Diaria Promedio (kWh/m²/día)')
     plt.title('Comparación de Irradiación Diaria Promedio por País')
-    plt.tight_layout()
+plt.tight_layout()
     plt.savefig('resultados/comparacion_irradiaciones.png')
-    plt.close()
+plt.close() 
     
     # Imprimir resultados
     print("\nResultados de la comparación:")
