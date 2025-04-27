@@ -1,0 +1,8 @@
+dash
+plotly
+pandas
+numpy
+
+# Nota: Asegúrate de que PySAM esté instalado en tu entorno.
+# Si lo instalaste con pip, puedes añadir la línea específica aquí, por ejemplo:
+# PySAM==<version_instalada> 
