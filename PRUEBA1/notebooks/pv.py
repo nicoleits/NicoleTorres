@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from mpl_toolkits.mplot3d import Axes3D # Importar Axes3D
 
 # =============================================================================
 # Función para Simulación Comparativa Energía Anual vs Capacidad
@@ -737,6 +738,10 @@ def main():
 
     # print("\nPara ejecutar la Sección 6: Análisis de Sensibilidad del LCOE, descomenta la línea siguiente:")
     # analizar_sensibilidad_lcoe(paises, output_dir, config_lcoe_base, lcoe_sens_ranges)
+
+    # --- Sección 5: Gráfico 3D (Ratio DC/AC, Energía, LCOE) --- <-- Eliminada
+    # print("\n--- Iniciando Análisis para Gráfico 3D (España, Tilt 20°) ---") <-- Eliminada
+    # ... todo el bloque 3D eliminado ...
 
     print("\n--- Fin de la configuración en main. Descomenta las funciones/bucles para ejecutarlas. ---")
 
