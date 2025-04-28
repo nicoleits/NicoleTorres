@@ -34,7 +34,6 @@ def run_single_simulation(solar_file, capacity_kw=1000, tilt=20, azimuth=180, in
         pv_model.SystemDesign.gcr = gcr
         pv_model.SystemDesign.inv_eff = inv_eff
         pv_model.SystemDesign.losses = losses
-        pv_model.AdjustmentFactors.constant = adjust_constant
         pv_model.execute()
         return pv_model # Devolver el modelo para acceder a más outputs si es necesario
     except Exception as e:
