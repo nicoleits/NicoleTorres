@@ -14,8 +14,8 @@ output_dir_graphs = "/home/nicole/proyecto/NicoleTorres/PRUEBA1/graficos"
 
 # Países a simular (Asegúrate que los archivos CSV existen)
 paises = [
-    {"nombre": "Chile", "archivo_sufijo": "chile", "color": "red"},
     {"nombre": "Australia", "archivo_sufijo": "australia", "color": "blue"},
+    {"nombre": "Chile", "archivo_sufijo": "chile", "color": "red"},
     {"nombre": "Espana", "archivo_sufijo": "espana", "color": "green"}
 ]
 
@@ -55,7 +55,7 @@ for pais_info in paises:
             meta_df = pd.read_csv(archivo_solar, nrows=1, header=None, skiprows=1)
             lat = meta_df.iloc[0, 5]
             lon = meta_df.iloc[0, 6]
-            tz = meta_df.iloc[0, 7] # Time Zone from file
+            tz = meta_df.iloc[0, 9] # <--- CORREGIDO: Usar índice 9 para Local Time Zone
             elev = meta_df.iloc[0, 8]
 
             # Leer datos saltando las primeras dos filas de metadatos
