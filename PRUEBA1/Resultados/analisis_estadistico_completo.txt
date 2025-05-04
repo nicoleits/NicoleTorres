@@ -77,7 +77,7 @@ shape: (9, 6)
 === Australia ===
   Archivo: australia.csv
   Metadatos: Lat=-31.55, Lon=116.22, Elev=243.0, TZ=8
-  Filas de datos leídas: 8760
+    Archivo original renombrado a: australia_original.csv\n    Archivo modificado (Minute=30) guardado como: australia.csv\n  Filas de datos leídas: 8760
 
   Estadísticas Descriptivas:
 shape: (9, 6)
