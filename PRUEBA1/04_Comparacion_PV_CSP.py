@@ -7,7 +7,6 @@ import matplotlib.ticker as mticker
 # # Comparación de Resultados PV y CSP
 
 # ## 1. Configuración de Rutas
-
 # Directorio donde se encuentran los resultados CSV
 # results_dir = "/home/nicole/proyecto/NicoleTorres/PRUEBA1/Resultados"
 # Directorio donde guardar los gráficos de comparación (puedes crear uno nuevo o usar existente)
@@ -35,14 +34,52 @@ print(f"Directorio de gráficos de comparación: {graphs_comp_dir}")
 
 # ## 2. Carga de Datos
 
-# Cargar datos principales de CSP
-df_csp_main = pd.DataFrame() # Inicializar vacío
-try:
-    df_csp_main = pd.read_csv(csv_csp_main)
-    print(f"\nCargado: {csv_csp_main}")
-    # print(df_csp_main.head()) # Descomenta para ver las primeras filas
-except FileNotFoundError:
-    print(f"\nERROR: Archivo no encontrado - {csv_csp_main}")
+# --- Carga de datos CSP desde archivos individuales --- MODIFICADO
+print("\nCargando datos CSP desde archivos individuales (resultados_<pais>.csv)...")
+df_csp_list = []
+paises_info = [
+    {"nombre": "Australia", "sufijo": "australia"},
+    {"nombre": "Chile", "sufijo": "chile"},
+    {"nombre": "Espana", "sufijo": "espana"}
+]
+
+for pais_data in paises_info:
+    pais_nombre = pais_data["nombre"]
+    pais_sufijo = pais_data["sufijo"]
+    csv_csp_individual = os.path.join(results_dir, f"resultados_{pais_sufijo}.csv")
+    try:
+        df_temp = pd.read_csv(csv_csp_individual)
+        # Asegurarse de que la columna 'Pais' exista o añadirla
+        if 'Pais' not in df_temp.columns:
+            df_temp['Pais'] = pais_nombre
+        print(f"  Cargado: {csv_csp_individual} ({len(df_temp)} filas)")
+        df_csp_list.append(df_temp)
+    except FileNotFoundError:
+        print(f"  ERROR: Archivo no encontrado - {csv_csp_individual}. Saltando este país para CSP.")
+    except Exception as e:
+        print(f"  ERROR al cargar {csv_csp_individual}: {e}. Saltando este país para CSP.")
+
+# Combinar los dataframes individuales en uno solo
+if df_csp_list:
+    df_csp_main = pd.concat(df_csp_list, ignore_index=True)
+    print("Datos CSP combinados desde archivos individuales.")
+    # Verificar columnas cargadas
+    print(f"  Columnas en df_csp_main: {df_csp_main.columns.tolist()}")
+else:
+    print("ERROR: No se pudieron cargar datos CSP desde ningún archivo individual.")
+    df_csp_main = pd.DataFrame() # Asegurar que sea un DF vacío si falla la carga
+
+# --- FIN Carga CSP Modificada ---
+
+# # Cargar datos principales de CSP (CÓDIGO ORIGINAL - COMENTADO)
+# df_csp_main = pd.DataFrame() # Inicializar vacío
+# csv_csp_main = os.path.join(results_dir, "resultados_simulacion_csp_multi.csv") # Archivo combinado original
+# try:
+#     df_csp_main = pd.read_csv(csv_csp_main)
+#     print(f"\nCargado: {csv_csp_main}")
+#     # print(df_csp_main.head()) # Descomenta para ver las primeras filas
+# except FileNotFoundError:
+#     print(f"\nERROR: Archivo no encontrado - {csv_csp_main}")
 
 # Calcular CF para CSP (vs Storage)
 CSP_NOMINAL_CAPACITY_KW = 100000 # Asunción: Capacidad nominal del bloque de potencia CSP en kW (e.g., 100 MW)
@@ -153,9 +190,12 @@ if not df_pv_energia_cap.empty and not df_csp_main.empty:
         # Guardar gráfico
         graph_filename = f"comparacion_generacion_csp_vs_pv_{pais_comparar}.png"
         graph_filepath = os.path.join(graphs_comp_dir, graph_filename)
-        plt.savefig(graph_filepath)
-        print(f"\nGráfico de comparación de generación guardado en: {graph_filepath}")
-        # plt.show() # Descomentar si quieres que se muestre el gráfico al ejecutar el script
+        # >>> INICIO MODIFICACIÓN: Comentar guardado de gráfico individual <<<
+        # plt.savefig(graph_filepath)
+        # print(f"\nGráfico de comparación de generación guardado en: {graph_filepath}")
+        print(f"\nGráfico de comparación de generación para {pais_comparar} NO guardado (código comentado).")
+        # <<< FIN MODIFICACIÓN >>>
+        # plt.show() # Descomentar si quieres que se muestre el gráfico
         plt.close()
 
     else:
@@ -297,8 +337,11 @@ if not df_csp_main.empty and 'min_lcoe_pv' in locals() and not min_lcoe_pv.empty
             # Guardar gráfico
             graph_filename = f"comparacion_lcoe_especifico_csp_vs_pv_{pais}.png"
             graph_filepath = os.path.join(graphs_comp_dir, graph_filename)
-            plt.savefig(graph_filepath)
-            print(f"  Gráfico de comparación de LCOE específico para {pais} guardado en: {graph_filepath}")
+            # >>> INICIO MODIFICACIÓN: Comentar guardado de gráfico individual <<<
+            # plt.savefig(graph_filepath)
+            # print(f"  Gráfico de comparación de LCOE específico para {pais} guardado en: {graph_filepath}")
+            print(f"  Gráfico de comparación de LCOE específico para {pais} NO guardado (código comentado).")
+            # <<< FIN MODIFICACIÓN >>>
             # plt.show() # Descomentar si quieres que se muestre el gráfico
             plt.close()
 
@@ -306,62 +349,80 @@ else:
     print("\nNo se pudieron cargar los DataFrames necesarios (CSP y LCOE PV min) para la comparación de LCOE específico.")
 
 
-# ## 6. Análisis CSP: Generación y LCOE vs Horas de Almacenamiento
+# ## 6. Análisis CSP: Generación y LCOE vs Horas de Almacenamiento (Combinado en un solo gráfico)
 
 if not df_csp_main.empty:
-    print("\n--- Iniciando Análisis CSP: Generación y LCOE vs Horas de Almacenamiento ---")
+    print("\n--- Iniciando Análisis CSP: Generación y LCOE vs Horas (Gráfico Combinado por País) ---")
 
     # Verificar existencia de columnas necesarias
     required_cols = ['Pais', 'Horas_almacenamiento', 'Generacion_energia_kWh', 'LCOE_$/kWh']
     if not all(col in df_csp_main.columns for col in required_cols):
-        print("ERROR: Faltan columnas necesarias en df_csp_main para el análisis de Generación/LCOE vs Almacenamiento.")
+        print("ERROR: Faltan columnas necesarias en df_csp_main para el análisis combinado.")
     else:
-        paises_csp = df_csp_main['Pais'].unique()
+        # Definir orden y obtener países presentes
+        country_order = ['Chile', 'Espana', 'Australia']
+        paises_csp_presentes = df_csp_main['Pais'].unique()
+        paises_csp_sorted = sorted([p for p in paises_csp_presentes if p in country_order],
+                                     key=lambda x: country_order.index(x))
 
-        for pais in sorted(paises_csp):
-            df_csp_pais = df_csp_main[df_csp_main['Pais'] == pais].sort_values('Horas_almacenamiento')
-
-            if df_csp_pais.empty:
-                print(f"  No hay datos de CSP para {pais} en este análisis.")
-                continue
-
-            fig, ax1 = plt.subplots(figsize=(12, 7))
-
-            color_gen = 'tab:blue'
-            ax1.set_xlabel('Horas de Almacenamiento (CSP)')
-            ax1.set_ylabel('Generación Anual (kWh)', color=color_gen)
-            line1 = ax1.plot(df_csp_pais['Horas_almacenamiento'], df_csp_pais['Generacion_energia_kWh'], 
-                             color=color_gen, marker='o', linestyle='-', label='Generación CSP')
-            ax1.tick_params(axis='y', labelcolor=color_gen)
-            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-            ax1.grid(True, axis='y', linestyle='--', alpha=0.6)
-
-            # Crear segundo eje Y para LCOE
+        if not paises_csp_sorted:
+            print("No se encontraron datos de países válidos (Chile, Espana, Australia) en df_csp_main.")
+        else:
+            # Crear figura ÚNICA y ejes duales
+            fig_comb_single, ax1 = plt.subplots(1, 1, figsize=(12, 7))
             ax2 = ax1.twinx()
-            color_lcoe = 'tab:red'
-            ax2.set_ylabel('LCOE ($/kWh)', color=color_lcoe)
-            line2 = ax2.plot(df_csp_pais['Horas_almacenamiento'], df_csp_pais['LCOE_$/kWh'], 
-                             color=color_lcoe, marker='s', linestyle='--', label='LCOE CSP')
-            ax2.tick_params(axis='y', labelcolor=color_lcoe)
-            # ax2.set_ylim(bottom=0) # Descomentar si es necesario
 
-            # Añadir leyenda combinada
-            lines = line1 + line2
-            labels = [l.get_label() for l in lines]
-            ax1.legend(lines, labels, loc='best')
+            # Paleta de colores (puedes ajustar si quieres)
+            palette = {
+                'Chile': 'red',
+                'Espana': 'green',
+                'Australia': 'blue'
+            }
 
-            plt.title(f"CSP ({pais}): Generación y LCOE vs Horas de Almacenamiento")
-            fig.tight_layout() # Ajustar layout para evitar solapamiento de etiquetas
+            print("  Generando curvas combinadas por país...")
+            for pais in paises_csp_sorted:
+                df_csp_pais = df_csp_main[df_csp_main['Pais'] == pais].sort_values('Horas_almacenamiento')
+                color = palette.get(pais, 'gray') # Color por defecto si el país no está en la paleta
 
-            # Guardar gráfico
-            graph_filename = f"analisis_csp_gen_lcoe_vs_alm_{pais}.png"
-            graph_filepath = os.path.join(graphs_comp_dir, graph_filename)
-            plt.savefig(graph_filepath)
-            print(f"  Gráfico de análisis CSP para {pais} guardado en: {graph_filepath}")
+                if df_csp_pais.empty:
+                    print(f"    Advertencia: No hay datos para {pais}, no se graficará.")
+                    continue
+
+                # Graficar Generación en eje izquierdo (ax1)
+                ax1.plot(df_csp_pais['Horas_almacenamiento'], df_csp_pais['Generacion_energia_kWh'],
+                         color=color, marker='o', linestyle='-', label=pais) # Etiqueta con nombre de país
+
+                # Graficar LCOE en eje derecho (ax2)
+                ax2.plot(df_csp_pais['Horas_almacenamiento'], df_csp_pais['LCOE_$/kWh'],
+                         color=color, marker='s', linestyle='--') # Sin etiqueta aquí
+
+            # Configurar ejes
+            ax1.set_xlabel('Horas de Almacenamiento (CSP)')
+            ax1.set_ylabel('Generación Anual (kWh)', color='black') # Etiqueta genérica
+            ax1.tick_params(axis='y', labelcolor='tab:blue')
+            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+            ax1.grid(True, linestyle='--', alpha=0.7)
+
+            ax2.set_ylabel('LCOE ($/kWh)', color='black') # Etiqueta genérica
+            ax2.tick_params(axis='y', labelcolor='tab:red')
+            ax2.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.3f'))
+
+            # Título
+            fig_comb_single.suptitle("CSP: Generación (Eje Izq, líneas sólidas) y LCOE (Eje Der, líneas punteadas) vs Horas", fontsize=14)
+
+            # Leyenda basada en las líneas de generación (ax1)
+            ax1.legend(title='País', loc='best')
+
+            # Ajustar layout y guardar
+            fig_comb_single.tight_layout(rect=[0, 0.03, 1, 0.95])
+            graph_filename_single = "analisis_csp_gen_lcoe_vs_alm_paises_combinado.png"
+            graph_filepath_single = os.path.join(graphs_comp_dir, graph_filename_single)
+            plt.savefig(graph_filepath_single)
+            print(f"  Gráfico combinado de análisis CSP por país guardado en: {graph_filepath_single}")
             # plt.show()
-            plt.close()
+            plt.close(fig_comb_single)
 else:
-    print("\nDataFrame df_csp_main vacío o no cargado. No se puede realizar el análisis CSP.")
+    print("\nDataFrame df_csp_main vacío o no cargado. No se puede realizar el análisis CSP combinado.")
 
 
 # ## 7. Comparación PV (vs Capacidad) y CSP (vs Múltiplo Solar)
@@ -388,88 +449,128 @@ if not df_pv_energia_cap.empty and not df_csp_variando_solarm.empty:
         print("ERROR: Faltan columnas requeridas en df_csp_variando_solarm.")
     else:
         # Encontrar países comunes
-        paises_comunes_gen = sorted(list(set(df_pv_energia_cap[pv_gen_country_col]) & set(df_csp_variando_solarm[csp_sm_country_col])))
+        # Definir el orden deseado de los países para los subplots
+        country_order = ['Chile', 'Espana', 'Australia']
+        paises_comunes_gen = sorted(
+            list(set(df_pv_energia_cap[pv_gen_country_col]) & set(df_csp_variando_solarm[csp_sm_country_col])),
+            key=lambda x: country_order.index(x) if x in country_order else float('inf')
+        )
+
 
         if not paises_comunes_gen:
             print("No hay países comunes entre df_pv_energia_cap y df_csp_variando_solarm para comparar generación.")
         else:
-            for pais in paises_comunes_gen:
-                print(f"  Generando gráficos comparativos para {pais}...")
+            # Crear figura para los gráficos combinados de generación (2 filas, N columnas)
+            n_cols = len(paises_comunes_gen)
+            fig_gen_combined, axes_gen_combined = plt.subplots(2, n_cols, figsize=(5 * n_cols, 8), sharey='row')
+            # Asegurar que axes_gen_combined sea siempre un array 2D, incluso si n_cols=1
+            if n_cols == 1:
+                axes_gen_combined = axes_gen_combined.reshape(2, 1)
+
+            fig_gen_combined.suptitle('Comparación Generación Anual: PV (vs Capacidad) y CSP (vs Múltiplo Solar)', fontsize=14)
+
+
+            for col_idx, pais in enumerate(paises_comunes_gen):
+                print(f"  Generando subplots comparativos para {pais}...")
                 df_pv_pais = df_pv_energia_cap[df_pv_energia_cap[pv_gen_country_col] == pais].sort_values(pv_gen_cap_col)
                 df_csp_sm_pais = df_csp_variando_solarm[df_csp_variando_solarm[csp_sm_country_col] == pais].sort_values(csp_sm_col)
 
                 if df_pv_pais.empty or df_csp_sm_pais.empty:
-                    print(f"    Datos incompletos para {pais}, saltando gráficos.")
+                    print(f"    Datos incompletos para {pais}, saltando subplots.")
+                    # Opcional: podrías querer ocultar los ejes para este país si no hay datos
+                    axes_gen_combined[0, col_idx].set_visible(False)
+                    axes_gen_combined[1, col_idx].set_visible(False)
                     continue
 
-                # --- Gráfico 1: Comparación de LCOE (CSP vs SM vs PV Min LCOE 1MW) ---
-                # Reutiliza min_lcoe_pv calculado en Sección 4
+                # --- Gráfico 1 (Modificado): Comparación de LCOE (CSP vs SM vs PV Min LCOE 1MW) ---
+
+                # >>> INICIO MODIFICACIÓN: Crear figura única para LCOE vs SM <<<
+                if 'fig_lcoe_sm_single' not in locals(): # Crear solo una vez
+                    fig_lcoe_sm_single, ax_lcoe_sm_single = plt.subplots(1, 1, figsize=(10, 6))
+                    ax_lcoe_sm_single.set_xlabel("Múltiplo Solar (CSP)")
+                    ax_lcoe_sm_single.set_ylabel("LCOE ($/kWh)")
+                    ax_lcoe_sm_single.set_title('Comparación LCOE: CSP (vs Múltiplo Solar) vs PV Mínimo (1MW)')
+                    ax_lcoe_sm_single.grid(True, linestyle='--')
+                    ax_lcoe_sm_single.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.3f'))
+                    # Paleta de colores
+                    lcoe_sm_palette = {
+                        'Chile': 'red',
+                        'Espana': 'green',
+                        'Australia': 'blue'
+                    }
+                # <<< FIN MODIFICACIÓN >>>
+
                 if 'min_lcoe_pv' in locals() and not min_lcoe_pv.empty:
                     if pais in min_lcoe_pv['Pais'].values:
                         lcoe_pv_min_pais = min_lcoe_pv[min_lcoe_pv['Pais'] == pais]['LCOE_PV_min'].iloc[0]
 
                         if not pd.isna(lcoe_pv_min_pais):
-                            plt.figure(figsize=(10, 6))
+                            # >>> INICIO MODIFICACIÓN: Dibujar en ejes únicos <<<
+                            color = lcoe_sm_palette.get(pais, 'gray') # Obtener color del país
+
                             # Graficar LCOE CSP vs Múltiplo Solar
-                            plt.plot(df_csp_sm_pais[csp_sm_col], df_csp_sm_pais[csp_sm_lcoe_col], marker='o', linestyle='-', label=f'LCOE CSP ({pais})')
+                            ax_lcoe_sm_single.plot(df_csp_sm_pais[csp_sm_col], df_csp_sm_pais[csp_sm_lcoe_col], 
+                                                   color=color, marker='o', linestyle='-', label=f'LCOE CSP {pais}')
                             # Añadir línea horizontal para LCOE mínimo PV (1MW)
-                            plt.axhline(lcoe_pv_min_pais, color='red', linestyle='--', label=f'LCOE Mínimo PV 1MW ({pais})')
-
-                            plt.xlabel("Múltiplo Solar (CSP)")
-                            plt.ylabel("LCOE ($/kWh)")
-                            plt.title(f"Comparación LCOE: CSP (vs Múltiplo Solar) vs PV Mínimo (1MW) - {pais}")
-                            plt.legend()
-                            plt.grid(True, linestyle='--')
-                            plt.tight_layout()
-
-                            # Guardar gráfico LCOE
-                            graph_filename_lcoe = f"comparacion_lcoe_csp_vs_sm_vs_pv_min_{pais}.png"
-                            graph_filepath_lcoe = os.path.join(graphs_comp_dir, graph_filename_lcoe)
-                            plt.savefig(graph_filepath_lcoe)
-                            print(f"    Gráfico LCOE CSP(vs SM) vs PV Min guardado en: {graph_filepath_lcoe}")
-                            plt.close()
+                            ax_lcoe_sm_single.axhline(lcoe_pv_min_pais, color=color, linestyle='--', label=f'PV Mín {pais}')
+                            # <<< FIN MODIFICACIÓN >>>
                         else:
-                             print(f"    No se encontró LCOE mínimo de PV válido para {pais}.")
+                             print(f"    No se encontró LCOE mínimo de PV válido para {pais} para el gráfico LCOE vs SM.")
                     else:
-                        print(f"    No se encontró LCOE mínimo de PV para {pais} en la tabla min_lcoe_pv.")
+                        print(f"    No se encontró LCOE mínimo de PV para {pais} en la tabla min_lcoe_pv para el gráfico LCOE vs SM.")
                 else:
-                    print("    No se encontró la tabla min_lcoe_pv para la comparación de LCOE.")
+                    print("    No se encontró la tabla min_lcoe_pv para la comparación de LCOE vs SM.")
 
+                # --- Gráfico 2 (Modificado): Comparación de Generación en subplots combinados ---
+                # (Este código se mantiene igual, generando el gráfico combinado de 2xN para generación)
+                # Subplot PV (Fila 0, Columna col_idx)
+                ax_pv = axes_gen_combined[0, col_idx]
+                ax_pv.plot(df_pv_pais[pv_gen_cap_col], df_pv_pais[pv_gen_energy_col], marker='o', linestyle='-', color='orange', label='PV')
+                ax_pv.set_xlabel('Capacidad PV (kW)')
+                if col_idx == 0: # Poner etiqueta Y solo en la primera columna
+                    ax_pv.set_ylabel('Generación Anual (kWh)')
+                ax_pv.set_title(f'PV ({pais})')
+                ax_pv.grid(True, linestyle='--')
+                ax_pv.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+                ax_pv.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+                # ax_pv.legend() # La leyenda puede saturar, quizás quitarla
 
-                # --- Gráfico 2: Comparación de Generación (PV vs Capacidad ; CSP vs SM) ---
-                fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=False)
-                fig.suptitle(f'Comparación Generación Anual - {pais}', fontsize=14)
+                # Subplot CSP (Fila 1, Columna col_idx)
+                ax_csp = axes_gen_combined[1, col_idx]
+                ax_csp.plot(df_csp_sm_pais[csp_sm_col], df_csp_sm_pais[csp_sm_gen_col], marker='s', linestyle='-', color='darkblue', label='CSP')
+                ax_csp.set_xlabel('Múltiplo Solar (CSP)')
+                if col_idx == 0: # Poner etiqueta Y solo en la primera columna
+                    ax_csp.set_ylabel('Generación Anual (kWh)')
+                # Título más informativo para CSP
+                alm_fijo_csp = df_csp_sm_pais['Horas_Almacenamiento_Fijas'].iloc[0] if 'Horas_Almacenamiento_Fijas' in df_csp_sm_pais else '?'
+                fcr_fijo_csp = df_csp_sm_pais['FCR_Fijo'].iloc[0] if 'FCR_Fijo' in df_csp_sm_pais else '?'
+                ax_csp.set_title(f'CSP ({pais}) (Alm={alm_fijo_csp}h, FCR={fcr_fijo_csp:.2f})')
 
-                # Subplot PV
-                axes[0].plot(df_pv_pais[pv_gen_cap_col], df_pv_pais[pv_gen_energy_col], marker='o', linestyle='-', color='orange', label='PV')
-                axes[0].set_xlabel('Capacidad PV (kW)')
-                axes[0].set_ylabel('Generación Anual (kWh)')
-                axes[0].set_title('PV: Generación vs Capacidad')
-                axes[0].grid(True, linestyle='--')
-                axes[0].ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-                axes[0].ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-                axes[0].legend()
+                ax_csp.grid(True, linestyle='--')
+                ax_csp.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+                # ax_csp.legend() # La leyenda puede saturar, quizás quitarla
 
-                # Subplot CSP
-                axes[1].plot(df_csp_sm_pais[csp_sm_col], df_csp_sm_pais[csp_sm_gen_col], marker='s', linestyle='-', color='darkblue', label='CSP')
-                axes[1].set_xlabel('Múltiplo Solar (CSP)')
-                axes[1].set_ylabel('Generación Anual (kWh)')
-                axes[1].set_title('CSP: Generación vs Múltiplo Solar (Alm={h}h, FCR={fcr})'.format(
-                                    h=df_csp_sm_pais['Horas_Almacenamiento_Fijas'].iloc[0] if 'Horas_Almacenamiento_Fijas' in df_csp_sm_pais else '?',
-                                    fcr=df_csp_sm_pais['FCR_Fijo'].iloc[0] if 'FCR_Fijo' in df_csp_sm_pais else '?'
-                                    ))
-                axes[1].grid(True, linestyle='--')
-                axes[1].ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-                axes[1].legend()
+            # >>> INICIO MODIFICACIÓN: Ajustar y guardar figura LCOE vs SM única <<<
+            if 'fig_lcoe_sm_single' in locals(): # Asegurarse que la figura se creó
+                # Ajustar leyenda y layout
+                ax_lcoe_sm_single.legend(title="Tecnología y País", bbox_to_anchor=(1.05, 1), loc='upper left') # Leyenda fuera del gráfico
+                fig_lcoe_sm_single.tight_layout(rect=[0, 0.03, 0.85, 0.95]) # Ajustar para leyenda y título
+                graph_filename_lcoe_single = "comparacion_lcoe_csp_vs_sm_vs_pv_min_paises_combinado.png"
+                graph_filepath_lcoe_single = os.path.join(graphs_comp_dir, graph_filename_lcoe_single)
+                fig_lcoe_sm_single.savefig(graph_filepath_lcoe_single)
+                print(f"\nGráfico LCOE vs SM Países Combinado guardado en: {graph_filepath_lcoe_single}")
+                plt.close(fig_lcoe_sm_single) # Cerrar la figura única LCOE
+            # <<< FIN MODIFICACIÓN >>>
 
-                plt.tight_layout(rect=[0, 0.03, 1, 0.96]) # Ajustar para título principal
+            # Ajustar layout y guardar la figura combinada de generación DESPUÉS del bucle
+            fig_gen_combined.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajustar para título principal
 
-                # Guardar gráfico Generación
-                graph_filename_gen = f"comparacion_generacion_pv_vs_cap_csp_vs_sm_{pais}.png"
-                graph_filepath_gen = os.path.join(graphs_comp_dir, graph_filename_gen)
-                plt.savefig(graph_filepath_gen)
-                print(f"    Gráfico Generación PV(vs Cap) / CSP(vs SM) guardado en: {graph_filepath_gen}")
-                plt.close()
+            # Guardar gráfico de Generación Combinado
+            graph_filename_gen_combined = "comparacion_generacion_combinada_pv_csp.png"
+            graph_filepath_gen_combined = os.path.join(graphs_comp_dir, graph_filename_gen_combined)
+            fig_gen_combined.savefig(graph_filepath_gen_combined)
+            print(f"\nGráfico de Generación Combinado guardado en: {graph_filepath_gen_combined}")
+            plt.close(fig_gen_combined) # Cerrar la figura combinada
 
 else:
     print("\nNo se pudieron cargar los DataFrames necesarios (df_pv_energia_cap o df_csp_variando_solarm) para la Sección 7.")
